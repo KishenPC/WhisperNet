@@ -1,0 +1,4 @@
+include README.md requirements.lock.txt whispernet.ps1 PROJECT_CONTEXT.md AGENTS.md
+recursive-include scripts *.sh
+recursive-include docs *.md
+recursive-include tests *.py
