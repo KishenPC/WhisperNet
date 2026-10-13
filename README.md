@@ -53,7 +53,14 @@ sudo apt-get update
 sudo apt-get install python3-venv tcpdump iproute2
 ```
 
-Clone this repository, open PowerShell in its folder, and run:
+Clone this repository and open PowerShell in its folder:
+
+```powershell
+git clone https://github.com/KishenPC/WhisperNet.git
+cd WhisperNet
+```
+
+Then run:
 
 ```powershell
 .\whispernet.ps1 setup
@@ -86,7 +93,7 @@ Live experiments need Linux networking privileges. Unit tests, building, and off
    .\whispernet.ps1 demo
    ```
 
-3. Allow roughly 2–3 minutes, plus up to a minute for clock synchronization after a cold Linux start. The clean fixed trial prints a verified message. Then show a noisy-link failure and the adaptive gap changes. Complete frames can make trials exceed their target duration.
+3. Allow roughly 2–3 minutes. On native Linux, initial clock synchronization may add up to a minute. The clean fixed trial prints a verified message. Then show a noisy-link failure and the adaptive gap changes. Complete frames can make trials exceed their target duration.
 4. Find the new result folder from the terminal output or `results/latest.txt`. Open its `index.html`; show the adaptation plot, useful-throughput comparison, and false alarms on benign traffic.
 5. Open a trial's `traffic.pcap` in Wireshark. Use `udp.dstport == 39001`; show the addresses, constant payload size, and varying packet gaps. Connect this to decoded bits, erasures, and CRC status in `receiver.json`.
 6. Discuss one improvement and one limitation. Wider gaps sometimes reduce errors, so corrected adaptation does not win every comparison. Detector alarms show unusual timing relative to a reference; they do not establish covert intent.
