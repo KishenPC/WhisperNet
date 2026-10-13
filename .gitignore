@@ -6,4 +6,10 @@ dist/
 .venv/
 results/
 tmp/
+.chart-data-*/
+output/
+AGENTS.md
+PROJECT_CONTEXT.md
+docs/review-script.md
+docs/rubric-evidence.md
 

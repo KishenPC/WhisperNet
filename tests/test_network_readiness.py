@@ -31,3 +31,24 @@ def test_inactive_time_service_does_not_require_ntp(monkeypatch):
     monkeypatch.setattr(network.shutil, "which", lambda _: "/usr/bin/tool")
     monkeypatch.setattr(network.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=3))
     assert network.await_clock_sync() == {"checked": False, "reason": "systemd-timesyncd inactive"}
+
+
+def test_wsl_time_service_is_restored_when_experiment_fails(monkeypatch):
+    commands=[]
+    monkeypatch.setattr(network.platform, "release", lambda: "6.18-microsoft-standard-WSL2")
+    monkeypatch.setattr(network.shutil, "which", lambda _: "/usr/bin/systemctl")
+    monkeypatch.setattr(network.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
+    monkeypatch.setattr(network, "run", lambda *a: commands.append(a))
+    with pytest.raises(RuntimeError, match="trial failed"):
+        with network.measurement_clock() as status:
+            assert status["guest_time_service_paused"]
+            raise RuntimeError("trial failed")
+    assert commands == [("systemctl", "stop", "systemd-timesyncd"),
+                        ("systemctl", "start", "systemd-timesyncd")]
+
+
+def test_native_linux_uses_clock_readiness_without_pausing_services(monkeypatch):
+    monkeypatch.setattr(network.platform, "release", lambda: "6.18-generic")
+    monkeypatch.setattr(network, "await_clock_sync", lambda: {"checked": True, "ntp_packets": 2})
+    with network.measurement_clock() as status:
+        assert status == {"checked": True, "ntp_packets": 2}

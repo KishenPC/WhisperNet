@@ -13,7 +13,7 @@ import time
 from .core import DATA_PORT, metrics, to_bytes
 from .detection import Detector, pcap_times, roc, windows
 from .endpoint import write_json
-from .network import LabNetwork, await_clock_sync, await_ready, run, stop_process
+from .network import LabNetwork, await_ready, measurement_clock, run, stop_process
 
 SCENARIOS = {
     "clean": [(0, 4, .5, 0, False)],
@@ -166,7 +166,11 @@ def evaluate(results, training):
 def suite(output, duration=8, repeats=3, scenarios=None, demo=False):
     if not (2 <= duration <= 120 and 1 <= repeats <= 20):
         raise ValueError("Duration must be 2-120 seconds and repeats 1-20")
-    clock_preflight = await_clock_sync()
+    with measurement_clock() as clock_preflight:
+        return _suite(output, duration, repeats, scenarios, demo, clock_preflight)
+
+
+def _suite(output, duration, repeats, scenarios, demo, clock_preflight):
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
     scenarios = scenarios or ["clean", "abrupt", "gradual", "burst", "pacing"]

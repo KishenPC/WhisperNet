@@ -1,7 +1,9 @@
 """Project-owned two-host network namespaces with UDP-only impairment."""
 
 import os
+from contextlib import contextmanager
 from pathlib import Path
+import platform
 import signal
 import re
 import shutil
@@ -34,6 +36,24 @@ def await_clock_sync(timeout=60):
         if time.monotonic() >= deadline:
             raise TimeoutError("Linux clock has not synchronized; check timedatectl timesync-status before retrying")
         time.sleep(1)
+
+
+@contextmanager
+def measurement_clock():
+    """Avoid guest NTP clock steps during WSL captures; restore its active state."""
+    if "microsoft" in platform.release().lower() and shutil.which("systemctl"):
+        active = subprocess.run(["systemctl", "is-active", "--quiet", "systemd-timesyncd"],
+                                capture_output=True, timeout=5)
+        if active.returncode == 0:
+            print("Pausing guest time synchronization during the WSL timing experiment...", flush=True)
+            run("systemctl", "stop", "systemd-timesyncd")
+            try:
+                yield {"checked": True, "guest_time_service_paused": True, "platform": "WSL"}
+            finally:
+                run("systemctl", "start", "systemd-timesyncd")
+                print("Restored guest time synchronization.", flush=True)
+            return
+    yield await_clock_sync()
 
 
 class LabNetwork:

@@ -62,7 +62,7 @@ Clone this repository, open PowerShell in its folder, and run:
 .\whispernet.ps1 build
 ```
 
-Setup creates the Linux environment at `~/.local/share/whispernet/venv`. Doctor checks the Python dependencies and Linux tools. The test suite contains 23 tests, including actual socket recovery and clock-readiness checks. Build produces the wheel and source distribution in `dist/`.
+Setup creates the Linux environment at `~/.local/share/whispernet/venv`. Doctor checks the Python dependencies and Linux tools. The test suite contains 25 tests, including actual socket recovery, clock readiness and service cleanup. Build produces the wheel and source distribution in `dist/`.
 
 ### Native Linux
 
@@ -105,7 +105,9 @@ For repeated comparison across all conditions:
 
 Do not run timing experiments concurrently when comparing performance. Instructions for a custom A message from two WSL terminals are in [the demo guide](docs/demo-guide.md).
 
-The lab waits for the first time update when `systemd-timesyncd` is active, because an initial wall-clock step can invalidate packet intervals. It does not change your clock or time-service settings. A later backwards clock step still aborts the capture rather than silently altering timestamps.
+On WSL, the lab temporarily stops an active guest `systemd-timesyncd` service during experiments to avoid clock steps competing with host time. It restarts that service after a normal finish or Python exception, without changing its enabled configuration or the Windows clock. On native Linux it waits for the first update when that service is active. A backwards clock step still aborts the capture rather than silently altering timestamps. After forcibly terminating a WSL run, check the service and start it if necessary with `sudo systemctl start systemd-timesyncd`.
+
+If a run reports `Capture timestamps are not ordered`, retain it as an invalid diagnostic and investigate host/guest clock synchronization before retrying. Matching packet counts alone does not establish valid timing evidence. On some WSL installations, later guest clock adjustments can invalidate a run even after the initial time update.
 
 ## Results and evidence
 
