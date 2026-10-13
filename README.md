@@ -13,15 +13,9 @@ Gaps ms   12  36  12  12  12  12  12  36
 
 The 12-byte UDP payload contains a magic value, frame number, and symbol index. Message bytes are represented by the gaps. A frame adds one anchor packet and eight known pilots, so the one-byte A example uses 17 packets. A full four-byte information frame uses 41 packets.
 
-```text
-Sender 10.77.0.1/24                       Receiver 10.77.0.2/24
-message -> bits -> timed UDP/39001 -> netem -> timestamps -> decoder
-                     virtual Ethernet                       |
-          <--- TCP/39002 parameters and pilot feedback ------+
+![WhisperNet system architecture](docs/whispernet-architecture.png)
 
-Receiver-side packet capture -> offline timing detector -> alarms
-Sender and receiver logs -> evaluator -> verified goodput and errors
-```
+The forward UDP path carries the timed message through the impaired virtual link. A separate TCP connection returns reliable lab parameters and pilot feedback. Receiver-side packet capture feeds the offline detector; it uses arrival-time features rather than sender message bits or impairment settings.
 
 The two endpoints run as separate Linux network namespaces. `netem` changes UDP delay, jitter, and loss. The TCP connection supplies reliable lab metadata and feedback; its elapsed time is included in useful throughput. This is a disclosed laboratory simplification.
 
