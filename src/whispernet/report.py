@@ -176,7 +176,7 @@ def generate(folder):
 
 Team members: Kishen Pathiyan Cherumanal and Aarav Gupta  
 Team number: 2  
-Register numbers: to be supplied by the students  
+Register numbers: Kishen Pathiyan Cherumanal — 24BCE2087; Aarav Gupta — 24BCE0163  
 Course: BCSE308P - Computer Networks Lab  
 Faculty: Dr. S. Ebenezer Juliet  
 Review date: 21 October 2026  

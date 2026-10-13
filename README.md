@@ -1,102 +1,122 @@
 # WhisperNet
 
-WhisperNet is a reproducible Linux/WSL2 lab for studying UDP timing channels, adaptive timing estimation, and statistical detection under changing network conditions.
+WhisperNet is a working networking lab that sends a message through the time gaps between UDP packets. The receiver decodes the message from arrival timestamps. The lab then measures how jitter, packet loss, and changing application rates affect communication and statistical detection.
 
-## Run from Windows
+## How the project works
 
-Open PowerShell in this project folder. Ubuntu-24.04 must have Python venv support, iproute2 and tcpdump.
+For a simple example, the letter **A** is the byte `01000001`. The fixed sender represents `0` with a **12 ms** gap and `1` with a **36 ms** gap. A receiver threshold of **24 ms** recovers the bits. The intended information gaps are:
+
+```text
+Bits       0   1   0   0   0   0   0   1
+Gaps ms   12  36  12  12  12  12  12  36
+```
+
+The 12-byte UDP payload contains a magic value, frame number, and symbol index. Message bytes are represented by the gaps. A frame adds one anchor packet and eight known pilots, so the one-byte A example uses 17 packets. A full four-byte information frame uses 41 packets.
+
+```text
+Sender 10.77.0.1/24                       Receiver 10.77.0.2/24
+message -> bits -> timed UDP/39001 -> netem -> timestamps -> decoder
+                     virtual Ethernet                       |
+          <--- TCP/39002 parameters and pilot feedback ------+
+
+Receiver-side packet capture -> offline timing detector -> alarms
+Sender and receiver logs -> evaluator -> verified goodput and errors
+```
+
+The two endpoints run as separate Linux network namespaces. `netem` changes UDP delay, jitter, and loss. The TCP connection supplies reliable lab metadata and feedback; its elapsed time is included in useful throughput. This is a disclosed laboratory simplification.
+
+Missing or reordered packets produce unknown bits called **erasures**. Complete frames are checked using CRC32. CRC detects errors; the implementation measures failed frames rather than repairing them.
+
+## What the comparison tests
+
+| Mode | Timing rule |
+|---|---|
+| Fixed | Keep 12/36 ms gaps. |
+| Naive adaptive | Estimate variation directly from received pilot gaps. |
+| Corrected adaptive | Subtract each pilot's intended gap before estimating variation. |
+| Benign | Generate application pacing independently of information bits. |
+
+Both adaptive policies set gap separation to four times their estimated standard deviation, clipped to 16–160 ms. The short gap stays at 12 ms; settings change on the next frame. Raw pilot variation includes the deliberately different symbol gaps, which can make the naive policy widen its own gap separation.
+
+The detector uses captured UDP arrival times, with 32 gaps per window. It compares a raw KS/entropy score with a score using median-normalized gaps and lag-one correlation. Complete benign runs supply the reference and threshold calibration; evaluation runs cannot update them. The nominal calibration false-alarm target is 5%.
+
+The experiment includes clean, abrupt/recovery, gradual, burst-loss, and legitimate application-pacing conditions. It measures conditional bit error, erasures, information failure, verified goodput, recovery, and timing-window alarms. Timing channels and these statistical methods have prior work; the project studies their controlled trade-offs.
+
+## Install and check
+
+### Windows with WSL2
+
+Install **Ubuntu-24.04** in WSL2. In Ubuntu, install the system dependencies:
+
+```bash
+sudo apt-get update
+sudo apt-get install python3-venv tcpdump iproute2
+```
+
+Clone this repository, open PowerShell in its folder, and run:
 
 ```powershell
 .\whispernet.ps1 setup
 .\whispernet.ps1 doctor
 .\whispernet.ps1 test
 .\whispernet.ps1 build
-.\whispernet.ps1 demo
-.\whispernet.ps1 experiment
 ```
 
-Each run creates a new folder inside `results/`. Open its `index.html` in a browser to view charts, `report.pdf` for the printable draft, `report.tex` for editable LaTeX, or `report.md` for editable text. Reports and charts use black-and-white formatting. `results/latest.txt` records the latest completed bundle. Open `traffic.pcap` from an individual trial in Windows Wireshark.
+Setup creates the Linux environment at `~/.local/share/whispernet/venv`. Doctor checks the Python dependencies and Linux tools. The test suite contains 20 tests, including actual socket recovery. Build produces the wheel and source distribution in `dist/`.
 
-For a longer repeated benchmark:
-
-```powershell
-.\whispernet.ps1 experiment --duration 12 --repeats 5
-```
-
-For a smaller first check:
-
-```powershell
-.\whispernet.ps1 experiment --duration 4 --repeats 1 --scenarios clean
-```
-
-Root is used only for commands that create the network laboratory (`demo` and `experiment`). They operate on uniquely named `wn-...` namespaces and remove those exact resources after a normal finish or an exception. Dependencies live in the default Ubuntu user's `~/.local/share/whispernet/venv`.
-
-## Run on native Linux
+### Native Linux
 
 ```bash
 sudo apt-get update
 sudo apt-get install python3-venv tcpdump iproute2
 bash scripts/setup.sh
 bash scripts/run.sh test
-sudo env WHISPERNET_VENV="$HOME/.local/share/whispernet/venv" bash scripts/run.sh experiment
+bash scripts/run.sh build
+sudo env WHISPERNET_VENV="$HOME/.local/share/whispernet/venv" bash scripts/run.sh demo
 ```
 
-Install the wheel from `dist/` in another Python environment to use the `whispernet` command. Live experiments require Linux namespace and traffic-control privileges; unit tests and offline reporting do not.
+Live experiments need Linux networking privileges. Unit tests, building, and offline reports do not need root. The Windows launcher requests root only for demo/experiment, and the lab removes its uniquely named `wn-...` namespaces when finished.
 
-## What is implemented
+## Demonstrate WhisperNet
 
-- Sender and receiver as actual processes in separate Linux network namespaces.
-- UDP timing encoding, constant-size packets, frame/index synchronization, known pilots and CRC32 validation.
-- Fixed gaps, raw-variation adaptation, and known-symbol-residual adaptation.
-- Clean, abrupt/recovery, gradual and burst-loss schedules applied with Linux netem.
-- Non-idle benign pacing under identical schedules, plus legitimate application-rate changes on a clean link.
-- Kernel receive timestamps where supported and receiver-side tcpdump captures.
-- Offline KS/entropy and normalized/temporal detector baselines calibrated on separate benign runs.
-- Substitutions, erasures, conditional BER, information failure, verified goodput, message-frame success, recovery and detection-delay measurements.
-- CSV, raw JSON evidence, plots, a browser results page, and editable reports.
+1. Explain the A example and the two endpoint addresses above.
+2. Start the live demo while explaining the frame and feedback flow:
 
-## Architecture
+   ```powershell
+   .\whispernet.ps1 demo
+   ```
 
-```text
-Sender: 10.77.0.1/24                         Receiver: 10.77.0.2/24
-message -> timing encoder -> UDP/39001 -> netem -> timestamps -> decoder
-                                   virtual Ethernet              |
-                <----- TCP/39002 lab metadata/feedback ----------+
+3. Allow roughly 2–3 minutes. The clean fixed trial prints a verified message. Then show a noisy-link failure and the adaptive gap changes. Complete frames can make trials exceed their target duration.
+4. Find the new result folder from the terminal output or `results/latest.txt`. Open its `index.html`; show the adaptation plot, useful-throughput comparison, and false alarms on benign traffic.
+5. Open a trial's `traffic.pcap` in Wireshark. Use `udp.dstport == 39001`; show the addresses, constant payload size, and varying packet gaps. Connect this to decoded bits, erasures, and CRC status in `receiver.json`.
+6. Discuss one improvement and one limitation. Wider gaps sometimes reduce errors, so corrected adaptation does not win every comparison. Detector alarms show unusual timing relative to a reference; they do not establish covert intent.
 
-Receiver-side PCAP -> timing-only detector -> ROC and false alarms
-Sender/receiver logs -> offline evaluator -> reliability and goodput
-```
-
-The reliable TCP control plane communicates parameters and CRC, not plaintext message bytes. It is excluded from netem's UDP-only impairment and from timing-detector features, but its time cost is included in goodput. This is an explicit laboratory simplification, not a covert control protocol. The 12-byte UDP payload carries a magic value, frame number and symbol index. The information message is carried by packet gaps.
-
-Each frame contains a timing anchor, eight known pilot symbols, and at most four message bytes. The receiver classifies a gap only when the two consecutive packet indices are adjacent. A missing packet therefore produces erasures rather than a guessed bit from a merged interval. Reordering and duplication are recorded. Complete frames are checked against CRC32, then the evaluator compares the original bits as well.
-
-## Interpretation and limitations
-
-- **No research novelty guarantee:** adaptive channels and statistical detection already exist. The experiment focuses on recovery, benign drift and estimator contamination.
-- **No universal stealth claim:** these scores quantify distinguishability from the selected benign references. They do not identify hidden intent.
-- **No assumed winner:** adaptation can improve or worsen different metrics. The report uses actual outcomes.
-- **Loss is not hidden:** conditional BER is separate from erasure rate; verified goodput counts complete correct frames only.
-- **Calibration is frozen:** evaluation windows cannot alter references or thresholds. The 5% calibration target is not a promised FPR under network changes.
-- **Window dependence:** ROC windows are descriptive; confidence intervals are calculated from run-level values when at least three repeats are available. A small experiment is not strong statistical evidence.
-- **Realism boundaries:** WSL scheduling, synthetic benign pacing, fixed pilots and a reliable lab control channel limit generalization. Native Linux and real traffic evaluation remain future work.
-- **Recovery definition:** two consecutive checksum-valid frames wholly within a new regime; a missing observation is explicitly recorded, not assigned zero seconds.
-- **Noise reproducibility:** application seeds and settings are logged; netem seed support is detected. Different packet schedules do not receive identical realized noise just because seeds match.
-
-## Demonstration and measured results
-
-Read `docs/demo-guide.md` for a live demonstration sequence, packet inspection, and sending a short message from two WSL terminals. `docs/measured-results.md` describes the repeated benchmark and its limitations. Benchmark run folders and packet captures are generated locally and are not included in this repository.
-
-Each completed run includes a black-and-white LaTeX report with embedded chart data. No separate figures or bibliography files are needed to compile that report.
-
-## Benchmark data
-
-- The documented benchmark comprises 60 evaluation trials across five conditions with three repetitions, plus three separate calibration runs. The corresponding result folders and packet captures are generated locally and are not tracked here.
-- `docs/measured-results.md`: a plain explanation of the benchmark outcomes and limits.
-
-To regenerate charts, Markdown and the PDF from a completed bundle:
+For a shorter clean-link check:
 
 ```powershell
-.\whispernet.ps1 report results/benchmark-verified
+.\whispernet.ps1 experiment --duration 4 --repeats 1 --scenarios clean
 ```
 
+For repeated comparison across all conditions:
+
+```powershell
+.\whispernet.ps1 experiment --duration 8 --repeats 3
+```
+
+Do not run timing experiments concurrently when comparing performance. Instructions for a custom A message from two WSL terminals are in [the demo guide](docs/demo-guide.md).
+
+## Results and evidence
+
+Each result bundle contains raw JSON logs, packet captures, CSV measurements, charts, a browser results page, and editable Markdown/LaTeX plus a PDF report. These files are generated locally and are not tracked in Git.
+
+The verified three-repeat benchmark contained 60 evaluation runs and three separate calibration runs. Clean-link mean verified goodput was 26.56, 13.30, and 29.40 bit/s for fixed, naive, and corrected timing. Under gradual worsening, naive adaptation had fewer information failures. For benign pacing changes, raw and normalized detector false-positive rates were 76.7% and 6.7%, respectively; normalization did not improve every network-drift case. See [measured results](docs/measured-results.md) for definitions and limits.
+
+Regenerate outputs from a saved bundle with:
+
+```powershell
+.\whispernet.ps1 report results/your-run-folder
+```
+
+## Scope and limitations
+
+The agreed laboratory is implemented end to end. Its evidence is from WSL2, synthetic benign pacing, fixed-order trials, and three benchmark repeats per condition. The fixed baseline is not tuned to an optimum, and the installed `tc` version does not support seeded netem noise. Real Internet paths and native Linux have not been validated. Error correction, automatic retransmission, authentication, and encryption are future work.
