@@ -3,6 +3,8 @@
 import os
 from pathlib import Path
 import signal
+import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -12,6 +14,26 @@ from .core import DATA_PORT
 
 def run(*args):
     return subprocess.run(list(args), check=True, text=True, capture_output=True).stdout.strip()
+
+
+def await_clock_sync(timeout=60):
+    """Keep a cold WSL boot alive until timesyncd has completed its first update."""
+    if not all(shutil.which(tool) for tool in ("systemctl", "timedatectl")):
+        return {"checked": False, "reason": "systemd time service unavailable"}
+    active = subprocess.run(["systemctl", "is-active", "--quiet", "systemd-timesyncd"], capture_output=True, timeout=5)
+    if active.returncode:
+        return {"checked": False, "reason": "systemd-timesyncd inactive"}
+    deadline = time.monotonic() + timeout
+    print("Waiting for initial Linux clock synchronization before timing capture...", flush=True)
+    while True:
+        status = subprocess.run(["timedatectl", "timesync-status", "--no-pager"],
+                                env={**os.environ, "LC_ALL": "C"}, text=True, capture_output=True, timeout=5)
+        packets = re.search(r"Packet count:\s*(\d+)", status.stdout)
+        if status.returncode == 0 and packets and int(packets.group(1)) > 0:
+            return {"checked": True, "ntp_packets": int(packets.group(1))}
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Linux clock has not synchronized; check timedatectl timesync-status before retrying")
+        time.sleep(1)
 
 
 class LabNetwork:

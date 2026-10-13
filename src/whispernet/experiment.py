@@ -13,7 +13,7 @@ import time
 from .core import DATA_PORT, metrics, to_bytes
 from .detection import Detector, pcap_times, roc, windows
 from .endpoint import write_json
-from .network import LabNetwork, await_ready, run, stop_process
+from .network import LabNetwork, await_clock_sync, await_ready, run, stop_process
 
 SCENARIOS = {
     "clean": [(0, 4, .5, 0, False)],
@@ -166,6 +166,7 @@ def evaluate(results, training):
 def suite(output, duration=8, repeats=3, scenarios=None, demo=False):
     if not (2 <= duration <= 120 and 1 <= repeats <= 20):
         raise ValueError("Duration must be 2-120 seconds and repeats 1-20")
+    clock_preflight = await_clock_sync()
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
     scenarios = scenarios or ["clean", "abrupt", "gradual", "burst", "pacing"]
@@ -176,7 +177,7 @@ def suite(output, duration=8, repeats=3, scenarios=None, demo=False):
                    "topology": "10.77.0.1/24 -- virtual Ethernet -- 10.77.0.2/24",
                    "control_plane": "TCP/39002 unimpeded lab metadata/CRC/feedback; included in elapsed time",
                    "data_plane": "UDP/39001 12-byte constant-size frame/index metadata; message carried by gaps",
-                   "created_epoch": time.time()}
+                   "created_epoch": time.time(), "clock_preflight": clock_preflight}
     write_json(root / "environment.json", environment)
     with LabNetwork() as network:
         for seed in (1001, 1002, 1003):

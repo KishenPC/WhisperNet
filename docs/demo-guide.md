@@ -11,7 +11,7 @@ Open PowerShell inside this project folder. Run:
 .\whispernet.ps1 test
 ```
 
-`doctor` checks the installed Linux tools and Python dependencies. The test command should report 20 passing tests, including actual UDP socket communication. On this computer setup is already complete. After moving to another computer with Ubuntu-24.04, run `setup` first and follow the README's dependency instructions.
+`doctor` checks the installed Linux tools and Python dependencies. The test command should report 23 passing tests, including actual UDP socket communication and clock readiness. After moving to another computer with Ubuntu-24.04, run `setup` first and follow the README's dependency instructions.
 
 For a short clean-link experiment:
 

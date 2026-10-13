@@ -62,7 +62,7 @@ Clone this repository, open PowerShell in its folder, and run:
 .\whispernet.ps1 build
 ```
 
-Setup creates the Linux environment at `~/.local/share/whispernet/venv`. Doctor checks the Python dependencies and Linux tools. The test suite contains 20 tests, including actual socket recovery. Build produces the wheel and source distribution in `dist/`.
+Setup creates the Linux environment at `~/.local/share/whispernet/venv`. Doctor checks the Python dependencies and Linux tools. The test suite contains 23 tests, including actual socket recovery and clock-readiness checks. Build produces the wheel and source distribution in `dist/`.
 
 ### Native Linux
 
@@ -86,7 +86,7 @@ Live experiments need Linux networking privileges. Unit tests, building, and off
    .\whispernet.ps1 demo
    ```
 
-3. Allow roughly 2–3 minutes. The clean fixed trial prints a verified message. Then show a noisy-link failure and the adaptive gap changes. Complete frames can make trials exceed their target duration.
+3. Allow roughly 2–3 minutes, plus up to a minute for clock synchronization after a cold Linux start. The clean fixed trial prints a verified message. Then show a noisy-link failure and the adaptive gap changes. Complete frames can make trials exceed their target duration.
 4. Find the new result folder from the terminal output or `results/latest.txt`. Open its `index.html`; show the adaptation plot, useful-throughput comparison, and false alarms on benign traffic.
 5. Open a trial's `traffic.pcap` in Wireshark. Use `udp.dstport == 39001`; show the addresses, constant payload size, and varying packet gaps. Connect this to decoded bits, erasures, and CRC status in `receiver.json`.
 6. Discuss one improvement and one limitation. Wider gaps sometimes reduce errors, so corrected adaptation does not win every comparison. Detector alarms show unusual timing relative to a reference; they do not establish covert intent.
@@ -104,6 +104,8 @@ For repeated comparison across all conditions:
 ```
 
 Do not run timing experiments concurrently when comparing performance. Instructions for a custom A message from two WSL terminals are in [the demo guide](docs/demo-guide.md).
+
+The lab waits for the first time update when `systemd-timesyncd` is active, because an initial wall-clock step can invalidate packet intervals. It does not change your clock or time-service settings. A later backwards clock step still aborts the capture rather than silently altering timestamps.
 
 ## Results and evidence
 
