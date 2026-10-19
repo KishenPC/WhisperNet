@@ -1,4 +1,7 @@
-include README.md requirements.lock.txt whispernet.ps1
+include README.md TEAM_HANDOFF.md requirements.lock.txt whispernet.ps1
 recursive-include scripts *.sh
 include docs/demo-guide.md docs/measured-results.md
+include docs/whispernet-architecture.png
+exclude AGENTS.md PROJECT_CONTEXT.md
+exclude docs/review-script.md docs/rubric-evidence.md
 recursive-include tests *.py

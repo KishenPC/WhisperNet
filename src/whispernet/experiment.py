@@ -194,8 +194,7 @@ def _suite(output, duration, repeats, scenarios, demo, clock_preflight):
         for repeat in range(repeats):
             for mode, scenario in configurations:
                 seed = 2001 + repeat
-                result = trial(network, root / f"{scenario}-{mode}-{seed}", mode, scenario, seed, duration,
-                               message="Kishen + Aarav | WhisperNet" if demo else "WhisperNet")
+                result = trial(network, root / f"{scenario}-{mode}-{seed}", mode, scenario, seed, duration)
                 results.append(result)
                 write_json(root / "summary.partial.json", results)
     detection = evaluate(results, training)

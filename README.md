@@ -2,6 +2,8 @@
 
 WhisperNet is a working networking lab that sends a message through the time gaps between UDP packets. The receiver decodes the message from arrival timestamps. The lab then measures how jitter, packet loss, and changing application rates affect communication and statistical detection.
 
+For an explanation from first principles, the measured contribution, a professor pitch and a demonstration walkthrough, read [the teammate guide](TEAM_HANDOFF.md).
+
 ## How the project works
 
 For a simple example, the letter **A** is the byte `01000001`. The fixed sender represents `0` with a **12 ms** gap and `1` with a **36 ms** gap. A receiver threshold of **24 ms** recovers the bits. The intended information gaps are:
