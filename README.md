@@ -2,7 +2,7 @@
 
 WhisperNet is a working networking lab that sends a message through the time gaps between UDP packets. The receiver decodes the message from arrival timestamps. The lab then measures how jitter, packet loss, and changing application rates affect communication and statistical detection.
 
-For an explanation from first principles, the measured contribution, a professor pitch and a demonstration walkthrough, read [the teammate guide](TEAM_HANDOFF.md).
+For an explanation from first principles, the measured contribution, a professor pitch and a demonstration walkthrough, read [the technical walkthrough](TEAM_HANDOFF.md).
 
 ## How the project works
 
@@ -37,6 +37,8 @@ Both adaptive policies set gap separation to four times their estimated standard
 The detector uses captured UDP arrival times, with 32 gaps per window. It compares a raw KS/entropy score with a score using median-normalized gaps and lag-one correlation. Complete benign runs supply the reference and threshold calibration; evaluation runs cannot update them. The nominal calibration false-alarm target is 5%.
 
 The experiment includes clean, abrupt/recovery, gradual, burst-loss, and legitimate application-pacing conditions. It measures conditional bit error, erasures, information failure, verified goodput, recovery, and timing-window alarms. Timing channels and these statistical methods have prior work; the project studies their controlled trade-offs.
+
+The literature also establishes coding against timing noise and subtraction of known timing signals. WhisperNet's contribution is the measured controller-estimator comparison and benign-drift evaluation with packet evidence. Its pilot residual measures gap distortion, including host scheduling effects, rather than one-way packet-delay variation. See the [paper priorities for the review](docs/demo-guide.md#paper-order-for-the-professor-review) for the main sources and how to explain them. The current literature search does not establish a first-in-literature claim.
 
 ## Install and check
 

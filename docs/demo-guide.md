@@ -73,3 +73,21 @@ This loopback example demonstrates encoding and decoding. It has no netem impair
 The benchmark is from WSL2 with synthetic benign pacing, three repeats per configuration and a fixed trial order. The fixed reference was not tuned to an optimum. The TCP lab control path is visible. Native Linux, real application traffic, error-correcting codes, retransmission-based repair, authentication and encryption are outside this implementation. A detector alarm indicates unusual timing relative to its reference, not covert intent.
 
 For the complete technical explanation and paper roles, see the Word teammate guide in `output/docx/WhisperNet-Teammate-Guide.docx` and the separate paper library in the `CNPapers` folder on the primary project computer (share that folder separately if needed).
+
+## Paper order for the professor review
+
+After the letter A example and clean recovery, give about one minute of paper context in this order. These are project-specific priorities, not a ranking of publication quality.
+
+| Order | Paper | Explain this point |
+|---:|---|---|
+| 1 | [Cabuk and colleagues 2004](https://doi.org/10.1145/1030083.1030108) | This is our base paper: it establishes the runnable timing channel and empirical detection problem. |
+| 2 | [Gianvecchio and Wang 2007](https://doi.org/10.1145/1315245.1315284) | This paper explains why timing distributions and temporal dependence both matter to detection. |
+| 3 | [Sellke and colleagues 2009](https://doi.org/10.1109/INFCOM.2009.5062145) | This is the noise-model paper: changing path delay distorts the gap, so separation and rate must be traded off. |
+| 4 | [CoCo by Houmansadr and Borisov 2011](https://doi.org/10.1007/978-3-642-24178-9_22) | CoCo already separates a known timing baseline from the received signal; our contribution is the measured estimator comparison. |
+| 5 | [Zillien and Wendzel 2023](https://doi.org/10.1109/TDSC.2023.3241451) | This paper supports our caution: detector success on one timing pattern need not generalize. |
+
+Then return to the estimator and false-alarm graphs. If asked for more literature, use model-based traffic (Gianvecchio 2008), robustness/spreading (Liu 2009), higher-order timing (Liu 2019), practical mitigation (NetWarden 2020) and measurement fidelity (SketchFeature 2025). The pattern survey (Wendzel 2015) explains why this is an established inter-arrival-time hiding pattern.
+
+The contribution to defend is the controlled estimator comparison and benign-drift evaluation with packet evidence. CoCo already subtracts a known timing sequence; WhisperNet uses intended pilot gaps to estimate residual variability, which measures gap distortion rather than one-way packet-delay variation. The present search does not establish a first-in-literature claim. Do not compare numerical accuracy or bitrate across papers with different datasets, carriers and overhead definitions. No cited coding, neural or P4 system has been added to this application.
+
+The primary computer has 16 validated PDFs in `CNPapers`, a ranked `PAPER_INDEX.md` and full-text notes. The companion `WhisperNet-Literature-Review.docx` explains the methods and caveats. Access-limited candidates are listed separately; Zhang 2019 has no saved PDF. The recent GAF/MTF paper is optional reading because its reported performance tables are inconsistent.

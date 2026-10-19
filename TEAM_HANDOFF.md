@@ -224,7 +224,9 @@ Timing channels, adaptive communication, KS-based comparison, entropy and tempor
 
 The value is the experimental comparison, packet evidence and interpretation of trade-offs. It is suitable for demonstrating networking knowledge and evaluation skills. A claim of publication-level originality would require broader literature comparison and further validation.
 
-Relevant background includes Cabuk, Brodley and Shields on timing-channel design/detection; Gianvecchio and Wang on entropy-based detection; Zhang and colleagues on feedback-adaptive communication; Zillien and Wendzel on detector weaknesses; and Zander, Armitage and Branch's broader survey. The formal report contains the complete bibliography and technical standards/documentation references.
+For the review, explain Cabuk and colleagues (2004), Gianvecchio and Wang (2007), Sellke and colleagues (2009), CoCo by Houmansadr and Borisov (2011), then Zillien and Wendzel (2023). These cover the runnable channel, temporal detection, gap-noise model, coding/known timing subtraction, and detector limitations. The [demonstration guide](docs/demo-guide.md#paper-order-for-the-professor-review) links these sources in that order.
+
+CoCo already subtracts a regenerated timing baseline before decoding. WhisperNet uses intended pilot gaps to estimate residual variability for a next-frame controller; subtraction itself is not a new principle. Residual variability measures received-gap distortion, not one-way packet-delay standard deviation. The present search does not establish a first-in-literature claim. Supporting reading includes traffic modeling (2008), spreading codes (2009), nested lattices (2019), NetWarden (2020), SketchFeature (2025), and the network/timing surveys. These mechanisms have not been added to WhisperNet. The formal report contains 23 references; the local paper library and companion literature document record full-text findings and access limits.
 
 ### A useful answer to “What is innovative?”
 
@@ -381,11 +383,14 @@ The repository contains the application, tests, launchers, architecture image, R
 
 On Kishen's project computer, the final course deliverables are:
 
-- `output/docx/WhisperNet-Project-Report.docx` — formal 16-page Word report with 11 references.
+- `output/docx/WhisperNet-Project-Report.docx` — formal 18-page Word report with 23 references.
 - `output/pdf/WhisperNet-Project-Report.pdf` — matching printable report.
 - `output/pptx/WhisperNet-Project-Review-Ready.pptx` — current 15-slide presentation; use this copy for review.
+- `output/docx/WhisperNet-Teammate-Guide.docx` — illustrated 13-page explanation with graph captions and the core paper order.
+- `output/docx/WhisperNet-Literature-Review.docx` — ten-page reading guide with methods, evidence and caveats for 16 downloaded papers, plus ten access-limited candidates.
+- `CNPapers` on the Desktop — the separate PDF library, ranked index and reading notes.
 
-Share those three files separately with the teammate. A clone supplies the runnable code and guide, but not those local documents or the historical benchmark. Declaration signatures still need to be added by the candidates.
+Share the documents and paper library separately with the teammate, or use the local review pack. A clone supplies the runnable code and walkthrough, but not those local documents or the historical benchmark. Declaration signatures still need to be added by the candidates.
 
 ### What readiness means
 
