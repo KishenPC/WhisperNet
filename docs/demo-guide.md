@@ -1,71 +1,75 @@
-# Using WhisperNet at the project review
+# WhisperNet demonstration walkthrough
 
-This guide walks through a short live demonstration of the WhisperNet networking lab.
+This walkthrough explains how to run the project, open its dashboard and use it in a professor review.
+
+## What the dashboard is
+
+Each run creates a local `index.html` that displays its plots and links to the CSV, JSON evidence and generated report. It is a static file: open it in a browser; no server is required. A short demonstration checks that the system works. Use the separate repeated benchmark dashboard for comparative averages.
 
 ## Before the review
 
-Open PowerShell inside this project folder. Run:
+Open PowerShell in the project folder. On a fresh WSL setup, install the Ubuntu prerequisites listed in the README, then run setup once. Check the environment and package before the presentation:
 
 ```powershell
+.\whispernet.ps1 setup   # only on a new computer
 .\whispernet.ps1 doctor
 .\whispernet.ps1 test
+.\whispernet.ps1 build
 ```
 
-`doctor` checks the installed Linux tools and Python dependencies. The test command should report 25 passing tests, including actual UDP socket communication, clock readiness and time-service cleanup. After moving to another computer with Ubuntu-24.04, run `setup` first and follow the README's dependency instructions.
-
-For a short clean-link experiment:
+The existing review-ready demonstration is in `results/review-ready-20261019`. It completed seven evaluation configurations plus three calibration runs. To open it now:
 
 ```powershell
-.\whispernet.ps1 experiment --duration 4 --repeats 1 --scenarios clean
+Start-Process .\results\review-ready-20261019\index.html
 ```
 
-The terminal prints packet counts, information failure, verified goodput and any recovered first message. This is a small functionality check; use the saved three-repeat benchmark to discuss comparative results.
+For the review date, create a new run folder so its results do not overwrite the prepared snapshot:
 
-## Demonstration sequence
-
-1. Explain the letter-A example: `01000001`, represented by 12/36 ms gaps, with a 24 ms threshold. Show the address plan and explain the separate TCP lab feedback connection.
-2. Run `.\whispernet.ps1 demo`. Allow roughly 2-3 minutes; a slow adaptive frame can make a run exceed its nominal duration. Point out the verified message from the clean-link trial.
-3. Explain the abrupt scenario: at about 2 seconds the link changes from 4 ms delay/0.5 ms jitter/no configured loss to 40 ms delay/8 ms jitter/2% configured loss. At about 5 seconds it returns to the clean settings. Actual change times and observed loss are recorded separately.
-4. Show the newly generated `index.html` and its adaptation graph. Explain fixed, naive and corrected policies, then point out a failed frame and recovery. Gaps update on the next frame rather than immediately during a frame.
-5. Show false alarms on benign traffic. Explain that the detector operates offline on captured arrival times and that an alarm does not identify hidden intent.
-6. Open `results/benchmark-verified/index.html` for repeated results. Clean-link mean goodput was 26.56, 13.30 and 29.40 bit/s for fixed, naive and corrected. Under gradual worsening, naive had fewer information failures. Show both findings.
-
-If there is less time, start the live demo while explaining the architecture, then use the saved benchmark for the graphs. Saved captures are recorded experimental evidence; identify them as previous runs rather than presenting them as newly generated.
-
-## Showing packet evidence
-
-Open a successful trial's `traffic.pcap` in Wireshark. Filter with:
-
-```text
-udp.dstport == 39001
+```powershell
+.\whispernet.ps1 demo --output results\professor-review-20261021
+Start-Process .\results\professor-review-20261021\index.html
 ```
 
-Show source `10.77.0.1`, destination `10.77.0.2`, the 12-byte UDP payload, and the varying arrival intervals. The payload contains a magic value, frame number and symbol index. The information is carried in packet spacing. Inspect `receiver.json` to connect a frame's arrival gaps with its decoded bits, erasures and checksum result. The capture filter excludes the TCP lab control connection.
+The launcher runs the network experiment in Ubuntu-24.04 on WSL2. The demo takes a few minutes because a slow adaptive frame may overrun its target duration. WSL experiments temporarily pause an active guest `systemd-timesyncd` service and restore it after a normal completion or Python exception.
 
-## Send your own short message
+## What to show, in order
 
-For a simple letter demonstration, open two Ubuntu/WSL terminals. In both, change to the folder containing the project:
+1. **Start with the letter A.** A is `01000001`; fixed mode maps 0 to a 12 ms gap and 1 to 36 ms. The receiver uses a 24 ms threshold.
+2. **Show the live clean result.** In the terminal, point out the recovered `WhisperNet` message from the clean fixed configuration. Explain that the payload carries frame/index metadata; the bits are carried by the gaps.
+3. **Open the fresh run dashboard.** Show the adaptation and performance plots, then the false-alarm plot for benign traffic. Keep the fresh run’s per-configuration results separate from benchmark averages.
+4. **Open the repeated benchmark dashboard.** Run `Start-Process .\results\benchmark-verified\index.html`. Explain it contains 60 evaluation runs (four modes × five conditions × three repeats) plus three separate calibration runs. Use it for mean comparisons and error bars.
+5. **Show one packet capture.** Open `results\review-ready-20261019\clean-fixed-2001\traffic.pcap` in Wireshark and filter with `udp.dstport == 39001`. Show the two addresses, 12-byte UDP payload and packet arrival gaps. Open that trial’s `receiver.json` to connect the gaps to decoded symbols, erasures and CRC status.
+6. **End with one finding and one limitation.** Correcting pilot contamination avoids a clean-link slowdown, but the naive controller had fewer failures during gradual worsening. The benign-pacing detector result improves substantially with normalization, but not for every network-drift case.
 
-```bash
-cd "/path/to/CN Project"
-```
+## Dashboard figures in plain language
 
-In the first terminal start the receiver:
+- **Adaptation:** fixed spacing remains level; naive spacing grows because it treats intended 0/1 pilot differences as network variation; corrected spacing tracks residual variation. The graph is one representative abrupt trial.
+- **Performance:** the left chart reports substitutions plus erasures; the right chart reports correct bits from fully verified frames per total sender time. Goodput includes pilot, feedback and settling overhead.
+- **False alarms:** the dashed 5% level is a calibration target, not a guarantee. On benign pacing changes, the raw detector flagged 76.7% of windows and the normalized score 6.7%. On gradual network drift, normalization was worse (18.5% vs 14.8%).
+- **ROC:** the curve shows the trade-off between detecting labeled channel windows and false alarms as the score threshold changes. These windows are dependent, so this ROC describes this controlled dataset rather than proving general performance.
+
+## Packet-level story
+
+The namespaces use 10.77.0.1/24 and 10.77.0.2/24. UDP/39001 carries timed data through netem; TCP/39002 carries reliable laboratory settings, pilot feedback and CRC status. The 12-byte UDP payload contains a marker, frame number and symbol index. It does not carry the user’s message bytes. A missing or reordered packet can destroy gap alignment, so affected symbols are marked as erasures. CRC32 detects a bad complete frame but does not repair it or authenticate a sender.
+
+## If the professor asks for a manual A test
+
+Open two Ubuntu terminals in the repository. Start the receiver first, then run the sender:
 
 ```bash
 bash scripts/run.sh receive --bind 127.0.0.1 --output results/manual-receiver.json --ready results/manual-ready
 ```
 
-In the second terminal send a message:
+In the second terminal:
 
 ```bash
-bash scripts/run.sh send --host 127.0.0.1 --mode fixed --message "A" --output results/manual-sender.json
+bash scripts/run.sh send --host 127.0.0.1 --mode fixed --message A --output results/manual-sender.json
 ```
 
-After the receiver finishes, open `results/manual-receiver.json`. For a successful frame it contains `"text": "A"` and `"verified": true`. This example uses loopback without added network impairment. Use the automated namespace demo to demonstrate network changes and compare controllers. Manual JSON files are overwritten when the same commands are repeated.
+This loopback example demonstrates encoding and decoding. It has no netem impairment; use the namespace demo for impairment and controller behavior.
 
-## Questions to answer clearly
+## Claims to keep precise
 
-Constant delay shifts all packets together; jitter changes their relative spacing. A lost packet can combine two gaps, so the receiver marks affected symbols unknown. CRC detects an incorrect complete frame; it does not repair it or authenticate the sender. Useful throughput includes pilots, feedback and settling time. The implementation has no error-correcting code or loss-driven redundancy policy. WSL and synthetic benign traffic limit how far these results generalize.
+The benchmark is from WSL2 with synthetic benign pacing, three repeats per configuration and a fixed trial order. The fixed reference was not tuned to an optimum. The TCP lab control path is visible. Native Linux, real application traffic, error-correcting codes, retransmission-based repair, authentication and encryption are outside this implementation. A detector alarm indicates unusual timing relative to its reference, not covert intent.
 
-Everyone presenting the project should understand the complete system and accurately describe their own contributions.
+For the complete technical explanation and paper roles, see the Word teammate guide in `output/docx/WhisperNet-Teammate-Guide.docx` and the separate paper library in the `CNPapers` folder on the primary project computer (share that folder separately if needed).
